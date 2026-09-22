@@ -10,9 +10,9 @@ Install Node.js 22 or newer, then run:
 npm start
 ```
 
-Open **http://localhost:5173**. Keep the command running while using the app; stop it with Ctrl+C. Use the same URL and port each time so the browser can restore your saved collection. Set `PORT` to use another port. The server only listens on this computer and only serves app assets.
+Open **http://localhost:5173**. Keep the command running while using the app; stop it with Ctrl+C. Use the same URL and port each time so the browser can restore your saved collections. Set `PORT` to use another port. The server only listens on this computer and only serves app assets.
 
-Click **Try an example** to explore immediately, or **Open folder** and select your data folder. The included `example-data` folder is also a valid dataset.
+Click **New**, then **Select folder** and choose your data folder. The included `example-data` folder is a valid dataset. Select entries, choose a mode, and **Save**. Then press **Run**.
 
 ## Dataset format
 
@@ -34,20 +34,22 @@ my-collection/
 
 An object with an `entries` array is also accepted. IDs must be unique non-empty strings. Text is required; category and image are optional. Duplicate text with distinct IDs represents distinct entries. Paths are case-sensitive, relative to the selected folder, and cannot contain traversal, absolute paths, URL schemes, query strings, or encoded segments. Missing or unreadable images show a placeholder. Content is rendered as plain text.
 
-## Drawing
+## Collections and drawing
 
-- **All entries:** Pick a specified number from the whole collection; defaults to one.
-- **Selected entries:** Shuffle every checked entry into a random order by default, following the functional requirement in `idea.md`. Enable **Limit results** to draw a smaller number. This reconciles the full-selection requirement with the optional result-count setting.
-- Search and category filters affect visibility only. **Select all visible** adds visible entries to the selection; **Clear selection** removes all checked entries, including hidden ones.
-- Each entry ID can be drawn only once per round, including across mode and selection changes. Both results and subsequent animation previews exclude previously drawn entries. **Reset**, available beside Play in both views, clears the draw history without changing the selection, settings, or displayed results. History lasts for this page session; reloading the page or loading a dataset starts a new round.
-- Play is disabled when the eligible pool is exhausted or fewer entries remain than the requested result count. Reset the round, reduce the count, or expand the pool to continue.
-- The Play button stays visible in the full-page view so you can draw again with the same selection and settings. It is disabled while shuffling to prevent overlapping draws.
-- Pressing Play immediately switches to a full-page view with larger cards for the shuffle animation and final results. **Back to controls** or **Escape** restores the interface, preserving the selection, settings, and results. Returning during a shuffle lets it finish without reopening the full-page view; draw controls remain locked until it finishes. Reduced motion skips directly to the results.
-- A Fisher–Yates shuffle with rejection-sampled Web Crypto random integers selects results before a roughly 2–3 second animation. Preview images are preloaded with a bounded wait. Images and text are blurred during the shuffle, then revealed sharply as each slot settles in sequence. Reduced-motion preferences skip the animation and blur.
+- The start page contains **New**, a saved-folder dropdown, **Run**, and **Reset**. Selecting a saved collection opens its settings; **Edit** reopens the active collection.
+- The modal edits a draft. **Save** stores the folder snapshot, selected entries, mode, and result count, closes the modal, and activates the collection. **Cancel**, the close button, or **Escape** discards edits. Changing a folder clears the draft selection; it does not change the saved collection until Save.
+- **Shuffle** displays every remaining selected entry in random order. **Pick** draws the specified number from the remaining selected entries. Results count is available only in Pick. Both modes require at least one selected entry.
+- Search filters visible entries without changing the selection. **Select all** clears search and selects every entry. **Clear selection** unchecks every entry, including hidden search results.
+- Each entry can appear only once per round within its saved collection. Switching collections, changing modes, or saving edits does not clear history. A complete Shuffle exhausts the selected pool. Run is disabled when the pool is exhausted or fewer entries remain than the requested count.
+- **Reset** clears the active dropdown selection, displayed results, and all session draw history. Saved collections and their settings remain available. Choose a saved collection and Save to start again. Reloading the page also clears session draw history.
+- Run opens a simple full-page results view with a warm neutral palette and muted teal accents. **Run again** and **Reset** remain available there. **Back** or **Escape** returns to the toolbar while preserving results. Returning during animation lets it finish without reopening the full-page view. Controls are locked during a draw.
+- A Fisher–Yates shuffle with rejection-sampled Web Crypto random integers selects results before a roughly 2–3 second animation. Only eligible entries appear in previews. Images and text are blurred until each slot settles. Reduced-motion preferences skip the animation and blur.
 
 ## Local persistence and browsers
 
-Folder loading uses the browser's directory file input, with no permission to silently reread the original folder. Local storage remembers the folder label, while IndexedDB stores a snapshot of the parsed entries and referenced image files. The snapshot reopens automatically on the same browser and origin; reopen the folder to load edits made on disk. **Forget dataset** removes the saved snapshot. The original folder is never modified.
+Folder loading uses the browser's directory file input, with no permission to silently reread the original folder. IndexedDB stores multiple snapshots of parsed entries and referenced image files, together with each collection's selection and draw settings. Reloading restores the dropdown options with no collection selected. Reopen a folder using **Change** to load edits made on disk. The original folder is never modified.
+
+Collections have independent IDs; folders with the same name appear with numbered labels. New creates a separate collection, while Edit updates an existing one. The previous app's single saved dataset is migrated into the dropdown with all entries selected and Shuffle mode. Draw history is never persisted.
 
 Storage limits, private browsing, or clearing site data can prevent persistence. The app reports storage failures and remains usable for the session. Large photos can consume substantial storage and memory: use appropriately sized images. List images are loaded as they approach the viewport, and animation preloading is bounded.
 
@@ -59,4 +61,6 @@ Use a current desktop browser with directory file input, IndexedDB, and Web Cryp
 npm test
 ```
 
-Tests cover dataset validation, folder boundaries, missing images, eligible pools, result-count validation, permutations, and random integer bounds. For a manual check, load the example, select four entries, switch to Selected entries, and verify that four distinct cards settle. Try filters, a limited draw, reduced motion, an invalid JSON file, missing images, and reopening the page to restore the dataset.
+Tests cover dataset validation, folder boundaries, missing images, eligible pools, result-count validation, permutations, random integer bounds, saved settings restoration, and legacy dataset conversion.
+
+For a manual check, create two collections, save different selections and modes, and reload to verify both remain in the dropdown. Edit and cancel to verify saved settings remain intact. Search for an entry and use Select all to verify the search clears and every entry is checked. Run a Pick repeatedly and verify no repeats, then run Shuffle to exhaust the remaining selection. Reset should clear the screen and active selection while retaining both saved configurations. Also check reduced motion, an invalid JSON file, missing images, keyboard modal navigation, and a narrow viewport.

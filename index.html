@@ -1,190 +1,48 @@
 <!doctype html>
 <html lang="en">
-  <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <meta name="theme-color" content="#f4f3ed" />
-    <title>Randomizer — Leave it to chance</title>
-    <link rel="stylesheet" href="styles.css" />
-    <script type="module" src="src/app.js"></script>
-  </head>
-  <body>
-    <header class="topbar">
-      <a class="brand" href="./"
-        ><span class="brand-mark" aria-hidden="true">⤨</span> randomizer<span
-          class="brand-dot"
-          >.</span
-        ></a
-      ><span class="local-badge"><i></i> Local by design</span>
-    </header>
-    <main>
-      <button
-        id="back-to-controls"
-        class="button focus-back"
-        type="button"
-        hidden
-      >
-        ← Back to controls <span aria-hidden="true">· Esc</span>
-      </button>
-      <div id="error" class="notice error" role="alert" hidden></div>
-      <div id="storage-note" class="notice" role="status" hidden></div>
-      <div class="workspace">
-        <section class="panel library" aria-labelledby="library-title">
-          <div class="panel-heading">
-            <div>
-              <p class="eyebrow">01 / YOUR COLLECTION</p>
-              <h2 id="library-title">The possibilities</h2>
-            </div>
-            <span id="entry-count" class="count-badge">0 entries</span>
-          </div>
-          <fieldset id="library-controls">
-            <legend class="sr-only">Dataset and selection</legend>
-            <div class="folder-box">
-              <span class="folder-icon" aria-hidden="true">▱</span>
-              <div class="folder-copy">
-                <strong id="dataset-name">Bring your own list</strong
-                ><span id="dataset-detail"
-                  >A folder with entries.json + images</span
-                >
-              </div>
-              <button id="open-folder" class="button small" type="button">
-                Open folder
-              </button>
-            </div>
-            <input
-              id="folder-input"
-              type="file"
-              webkitdirectory
-              multiple
-              hidden
-            />
-            <div class="collection-actions">
-              <button id="demo" class="text-button" type="button">
-                Try an example ↗</button
-              ><button id="forget" class="text-button" type="button" hidden>
-                Forget dataset
-              </button>
-            </div>
-            <div class="filters">
-              <label class="search"
-                ><span aria-hidden="true">⌕</span
-                ><input
-                  id="search"
-                  type="search"
-                  aria-label="Search entries"
-                  placeholder="Find an entry…" /></label
-              ><select id="category" aria-label="Filter by category">
-                <option value="">All categories</option>
-              </select>
-            </div>
-            <div class="selection-bar">
-              <span id="selection-count">0 selected</span>
-              <div>
-                <button id="select-visible" class="text-button" type="button">
-                  Select all visible</button
-                ><span aria-hidden="true"> / </span
-                ><button id="clear-selection" class="text-button" type="button">
-                  Clear selection
-                </button>
-              </div>
-            </div>
-            <div id="entries" class="entry-list"></div>
-          </fieldset>
-          <p class="panel-footnote">
-            Filters change the view. Checkboxes change your selection.
-          </p>
-        </section>
-        <section class="panel draw" aria-labelledby="draw-title">
-          <div class="panel-heading">
-            <div>
-              <p class="eyebrow">02 / THE MOMENT OF CHANCE</p>
-              <h2 id="draw-title">Make your draw</h2>
-            </div>
-            <span class="spark" aria-hidden="true">✧</span>
-          </div>
-          <fieldset id="draw-controls">
-            <legend class="sr-only">Randomization settings</legend>
-            <div class="mode-switch">
-              <label
-                ><input type="radio" name="mode" value="all" checked /><span
-                  >All entries</span
-                ></label
-              ><label
-                ><input type="radio" name="mode" value="selected" /><span
-                  >Selected entries</span
-                ></label
-              >
-            </div>
-            <div class="draw-settings">
-              <label id="limit-label" hidden
-                ><input id="limit" type="checkbox" /> Limit results</label
-              ><label id="count-label" for="result-count"
-                >Results
-                <input
-                  id="result-count"
-                  type="number"
-                  min="1"
-                  step="1"
-                  value="1" /></label
-              ><span id="pool-summary"></span>
-            </div>
-          </fieldset>
-          <div class="result-stage">
-            <div id="empty-result" class="empty-result">
-              <div class="empty-art" aria-hidden="true">
-                <span>?</span><span>✳</span><span>?</span>
-              </div>
-              <h3>A little suspense looks good here.</h3>
-              <p>
-                Load a collection, choose your pool,<br />and see what comes up.
-              </p>
-            </div>
-            <div
-              id="results"
-              class="results"
-              role="region"
-              aria-label="Draw results"
-              tabindex="-1"
-              hidden
-            ></div>
-          </div>
-          <div class="play-area">
-            <div id="draw-progress" class="draw-progress" role="status"></div>
-            <p id="validation" class="validation"></p>
-            <button
-              id="play"
-              class="play-button"
-              type="button"
-              aria-describedby="validation pool-summary"
-              disabled
-            >
-              <span aria-hidden="true">▶</span> <span id="play-label">Play</span
-              ><span class="play-arrow" aria-hidden="true">↗</span></button
-            ><button
-              id="reset-draw"
-              class="button reset-button"
-              type="button"
-              disabled
-            >
-              ↺ Reset
-            </button>
-            <p>Each entry appears once. Reset to start a new round.</p>
-          </div>
-        </section>
-      </div>
-      <footer>
-        <span
-          ><span aria-hidden="true">◉</span> Your files stay in this browser. No
-          uploads. No accounts.</span
-        ><span>Made for the undecided.</span>
-      </footer>
-      <p
-        id="announcement"
-        class="sr-only"
-        role="status"
-        aria-live="polite"
-        aria-atomic="true"
-      ></p>
-    </main>
-  </body>
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="theme-color" content="#f6f5f0" />
+  <title>Randomizer</title>
+  <link rel="stylesheet" href="styles.css" />
+  <script type="module" src="src/app.js"></script>
+</head>
+<body>
+  <main>
+    <div class="toolbar" aria-label="Randomizer controls">
+      <button id="new" type="button"><span aria-hidden="true">⊕</span> New</button>
+      <select id="collections" aria-label="Saved collections"><option value="">Select a folder…</option></select>
+      <button id="edit" type="button" hidden>Edit</button>
+      <button id="play" class="primary" type="button" aria-describedby="validation" disabled><span aria-hidden="true">▶</span> <span id="play-label">Run</span></button>
+      <button id="reset-draw" class="text-button" type="button" disabled>Reset</button>
+    </div>
+    <p id="storage-note" class="notice" role="status" hidden></p>
+    <p id="error" class="notice" role="alert" hidden></p>
+    <p id="validation" class="validation" role="status" hidden></p>
+    <button id="back-to-controls" class="text-button" type="button" hidden>← Back <span aria-hidden="true">· Esc</span></button>
+    <section id="results" class="results" aria-label="Draw results" tabindex="-1" hidden></section>
+    <p id="draw-progress" class="draw-progress" role="status" hidden></p>
+    <p id="announcement" class="sr-only" role="status" aria-live="polite" aria-atomic="true"></p>
+  </main>
+  <dialog id="configuration" aria-labelledby="modal-title">
+    <div class="modal-heading"><h1 id="modal-title">New collection</h1><button id="close-modal" class="close-button" aria-label="Close configuration" type="button">×</button></div>
+    <p id="modal-error" class="notice" role="alert" hidden></p>
+    <fieldset id="configuration-controls">
+      <legend class="sr-only">Collection settings</legend>
+      <div class="folder-row"><span>Folder: <strong id="dataset-name">None selected</strong></span><button id="open-folder" type="button">Select folder</button></div>
+      <input id="folder-input" type="file" webkitdirectory multiple hidden />
+      <input id="search" type="search" aria-label="Search entries" placeholder="Find an entry" />
+      <div class="selection-bar"><span id="selection-count">0 selected</span><div><button id="select-all" class="text-button" type="button">Select all</button><span aria-hidden="true"> / </span><button id="clear-selection" class="text-button" type="button">Clear selection</button></div></div>
+      <div id="entries" class="entry-list"></div>
+      <fieldset class="mode-options"><legend>Mode</legend>
+        <label><input type="radio" name="mode" value="shuffle" checked /> Shuffle <span>(Shuffles through selected items)</span></label>
+        <label><input type="radio" name="mode" value="pick" /> Pick <span>(Pick from selected items)</span></label>
+      </fieldset>
+      <label id="count-label" class="count-label" for="result-count" hidden>Results: <input id="result-count" type="number" min="1" step="1" value="1" /></label>
+      <p id="save-validation" class="validation" role="status"></p>
+      <div class="modal-actions"><button id="save" class="primary" type="button" disabled>Save</button><button id="cancel" type="button">Cancel</button></div>
+    </fieldset>
+  </dialog>
+</body>
 </html>
