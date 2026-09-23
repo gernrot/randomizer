@@ -23,22 +23,9 @@ function history() {
 }
 function pool() { return dataset ? collectionPool(dataset, history()) : []; }
 function requestedCount() { return dataset?.mode === 'shuffle' ? pool().length : dataset?.count; }
-function focusResults() {
-  document.body.classList.add('results-focus');
-  $('back-to-controls').hidden = false;
-  window.scrollTo(0, 0);
-  (busy ? $('back-to-controls') : $('results')).focus({ preventScroll: true });
-}
-function returnToControls() {
-  document.body.classList.remove('results-focus');
-  $('back-to-controls').hidden = true;
-  ($('play').disabled ? $('new') : $('play')).focus({ preventScroll: true });
-}
 function clearResults() {
   $('results').replaceChildren(); $('results').hidden = true;
   $('play-label').textContent = 'Run';
-  document.body.classList.remove('results-focus');
-  $('back-to-controls').hidden = true;
 }
 function imageUrl(entry, source = dataset) {
   const file = source?.images.get(entry.image);
@@ -203,7 +190,7 @@ async function play() {
     results.hidden = false;
     results.setAttribute('aria-busy', 'true'); results.setAttribute('aria-hidden', 'true');
     $('play-label').textContent = 'Shuffling…';
-    focusResults();
+    window.scrollTo(0, 0);
     if (!reduced) {
       results.classList.add('shuffling');
       slots.forEach((slot, i) => fillCard(slot, previews[i % previews.length]));
@@ -234,8 +221,8 @@ async function play() {
   } catch (error) { notice('error', `Could not complete the draw: ${error.message}`); $('play-label').textContent = 'Run'; }
   finally {
     results.classList.remove('shuffling'); results.removeAttribute('aria-hidden'); results.setAttribute('aria-busy', 'false'); setBusy(false);
-    if (!completed) returnToControls();
-    else if (document.body.classList.contains('results-focus')) $('results').focus({ preventScroll: true });
+    if (completed) results.focus({ preventScroll: true });
+    else ($('play').disabled ? $('new') : $('play')).focus({ preventScroll: true });
   }
 }
 $('new').addEventListener('click', () => openConfiguration(null, $('new')));
@@ -275,16 +262,12 @@ $('save').addEventListener('click', async () => {
   setModalBusy(false); closeConfiguration();
   $('announcement').textContent = `Saved ${next.name}. Ready to run.`;
 });
-$('back-to-controls').addEventListener('click', returnToControls);
 $('reset-draw').addEventListener('click', () => {
   if (busy) return;
-  histories.clear(); dataset = null; clearResults(); renderCollections(); updateControls();
+  histories.clear(); clearResults(); updateControls();
   notice('error');
-  $('announcement').textContent = 'Reset complete. Choose a saved collection to start a new round.';
-  $('collections').focus();
-});
-document.addEventListener('keydown', event => {
-  if (event.key === 'Escape' && !$('configuration').open && document.body.classList.contains('results-focus')) { event.preventDefault(); returnToControls(); }
+  $('announcement').textContent = 'Draw history reset. Ready to start a new round.';
+  ($('play').disabled ? $('collections') : $('play')).focus();
 });
 $('play').addEventListener('click', play);
 

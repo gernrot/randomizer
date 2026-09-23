@@ -17,12 +17,13 @@
       <button id="play" class="primary" type="button" aria-describedby="validation" disabled><span aria-hidden="true">▶</span> <span id="play-label">Run</span></button>
       <button id="reset-draw" class="text-button" type="button" disabled>Reset</button>
     </div>
+    <div class="draw-status">
+      <p id="draw-progress" class="draw-progress" role="status" hidden></p>
+      <p id="validation" class="validation" role="status" hidden></p>
+    </div>
     <p id="storage-note" class="notice" role="status" hidden></p>
     <p id="error" class="notice" role="alert" hidden></p>
-    <p id="validation" class="validation" role="status" hidden></p>
-    <button id="back-to-controls" class="text-button" type="button" hidden>← Back <span aria-hidden="true">· Esc</span></button>
     <section id="results" class="results" aria-label="Draw results" tabindex="-1" hidden></section>
-    <p id="draw-progress" class="draw-progress" role="status" hidden></p>
     <p id="announcement" class="sr-only" role="status" aria-live="polite" aria-atomic="true"></p>
   </main>
   <dialog id="configuration" aria-labelledby="modal-title">
