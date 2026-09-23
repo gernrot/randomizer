@@ -35,6 +35,8 @@ function imageUrl(entry, source = dataset) {
 }
 function showImage(img, entry, source = dataset) {
   img.alt = '';
+  img.hidden = !entry.image;
+  if (!entry.image) { img.onerror = null; img.removeAttribute('src'); return; }
   img.onerror = () => { const file = source?.images.get(entry.image); if (file) broken.add(file); img.onerror = null; img.src = placeholder; };
   const url = imageUrl(entry, source);
   if (img.getAttribute('src') !== url) img.src = url;
@@ -88,7 +90,7 @@ function renderEntries() {
   const visible = draft.entries.filter(entry => `${entry.text} ${entry.category}`.toLocaleLowerCase().includes(query));
   if (!visible.length) {
     const empty = document.createElement('p'); empty.className = 'list-empty';
-    empty.textContent = draft.entries.length ? 'No entries match your search.' : 'Select a folder containing entries.json and its images.';
+    empty.textContent = draft.entries.length ? 'No entries match your search.' : 'Select a folder containing a .csv or .json file and any images.';
     container.append(empty);
   }
   const source = draft;
@@ -103,13 +105,16 @@ function renderEntries() {
       if (checkbox.checked) selected.add(entry.id); else selected.delete(entry.id);
       draft.selectedIds = [...selected]; updateDraftControls();
     });
-    const img = document.createElement('img'); img.width = 74; img.height = 74; img.alt = ''; img.src = placeholder;
+    const img = document.createElement('img'); img.width = 74; img.height = 74; img.alt = ''; img.hidden = !entry.image;
+    if (entry.image) img.src = placeholder;
     const copy = document.createElement('span'); copy.className = 'entry-copy';
     const title = document.createElement('strong'); title.textContent = entry.text;
-    const subtitle = document.createElement('small'); subtitle.textContent = entry.category;
+    const subtitle = document.createElement('small'); subtitle.textContent = entry.category; subtitle.hidden = !entry.category;
     copy.append(title, subtitle); row.append(checkbox, img, copy); container.append(row);
     img.entry = entry;
-    if (observer) observer.observe(img); else showImage(img, entry, source);
+    if (entry.image) {
+      if (observer) observer.observe(img); else showImage(img, entry, source);
+    }
   }
   updateDraftControls();
 }

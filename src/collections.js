@@ -20,7 +20,7 @@ export function collectionPool(collection, history = new Set()) {
   return eligibleEntries(collection.entries, new Set(collection.selectedIds), 'selected', history);
 }
 export function configurationProblem(collection) {
-  if (!collection?.entries.length) return 'Select a folder containing entries.json to get started.';
+  if (!collection?.entries.length) return 'Select a folder containing a .csv or .json file to get started.';
   const size = collectionPool(collection).length;
   if (!size) return 'Select at least one entry.';
   if (collection.mode === 'pick' && (!Number.isInteger(collection.count) || collection.count < 1)) return 'Enter a whole number of results, starting at 1.';
