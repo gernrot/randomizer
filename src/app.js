@@ -1,141 +1,151 @@
-import { loadFolder, parseEntries } from './data.js';
-import { draw, eligibleEntries, randomInt } from './random.js';
-import { saveDataset, restoreDataset, forgetDataset } from './storage.js';
+import { loadFolder } from './data.js';
+import { draw, randomInt } from './random.js';
+import { saveCollection, restoreCollections } from './storage.js';
+import { restoreCollection, collectionPool, configurationProblem } from './collections.js';
 
 const $ = id => document.getElementById(id);
 const placeholder = new URL('../assets/placeholder.svg', import.meta.url).href;
-let dataset = { name: '', entries: [], images: new Map() };
-let selected = new Set();
-const drawn = new Set();
+const collections = new Map();
+const histories = new Map();
+const urls = new Map();
+const broken = new Set();
+let dataset = null;
+let draft = null;
 let busy = false;
-let urls = new Map();
-let broken = new Set();
+let modalBusy = false;
 let observer;
-let mode = 'all';
-let controlsScroll = 0;
-
-function focusResults() {
-  if (!document.body.classList.contains('results-focus')) controlsScroll = window.scrollY;
-  document.body.classList.add('results-focus');
-  $('back-to-controls').hidden = false;
-  window.scrollTo(0, 0);
-  $('results').scrollTop = 0;
-  (busy ? $('back-to-controls') : $('results')).focus({ preventScroll: true });
-}
-function returnToControls() {
-  if (!document.body.classList.contains('results-focus')) return;
-  document.body.classList.remove('results-focus');
-  $('back-to-controls').hidden = true;
-  window.scrollTo(0, controlsScroll);
-  ($('play').disabled ? document.querySelector('.brand') : $('play')).focus({ preventScroll: true });
-}
+let modalOpener;
 
 function notice(id, message = '') { $(id).textContent = message; $(id).hidden = !message; }
-function pool() { return eligibleEntries(dataset.entries, selected, mode, drawn); }
-function requestedCount() { return mode === 'selected' && !$('limit').checked ? pool().length : Number($('result-count').value); }
-function imageUrl(entry) {
-  if (!entry.image || broken.has(entry.image) || !dataset.images.has(entry.image)) return placeholder;
-  if (!urls.has(entry.image)) urls.set(entry.image, URL.createObjectURL(dataset.images.get(entry.image)));
-  return urls.get(entry.image);
+function history() {
+  if (!histories.has(dataset.id)) histories.set(dataset.id, new Set());
+  return histories.get(dataset.id);
 }
-function showImage(img, entry) {
+function pool() { return dataset ? collectionPool(dataset, history()) : []; }
+function requestedCount() { return dataset?.mode === 'shuffle' ? pool().length : dataset?.count; }
+function clearResults() {
+  $('results').replaceChildren(); $('results').hidden = true;
+  $('play-label').textContent = 'Run';
+}
+function imageUrl(entry, source = dataset) {
+  const file = source?.images.get(entry.image);
+  if (!file || broken.has(file)) return placeholder;
+  if (!urls.has(file)) urls.set(file, URL.createObjectURL(file));
+  return urls.get(file);
+}
+function showImage(img, entry, source = dataset) {
   img.alt = '';
-  img.onerror = () => { if (entry.image) broken.add(entry.image); img.onerror = null; img.src = placeholder; };
-  const url = imageUrl(entry);
+  img.onerror = () => { const file = source?.images.get(entry.image); if (file) broken.add(file); img.onerror = null; img.src = placeholder; };
+  const url = imageUrl(entry, source);
   if (img.getAttribute('src') !== url) img.src = url;
 }
-function setBusy(value) {
-  busy = value;
-  $('library-controls').disabled = value;
-  $('draw-controls').disabled = value;
-  updateControls();
+function releaseUnusedImages() {
+  const retained = new Set([...collections.values(), ...(draft ? [draft] : [])].flatMap(item => [...item.images.values()]));
+  for (const [file, url] of urls) if (!retained.has(file)) { URL.revokeObjectURL(url); urls.delete(file); broken.delete(file); }
 }
+function setBusy(value) { busy = value; updateControls(); }
 function updateControls() {
   const eligible = pool();
-  const count = requestedCount();
-  $('selection-count').textContent = `${selected.size} selected`;
-  $('limit-label').hidden = mode !== 'selected';
-  $('count-label').hidden = mode === 'selected' && !$('limit').checked;
-  $('result-count').max = eligible.length;
-  $('pool-summary').textContent = mode === 'selected' && !$('limit').checked ? `Shuffling all ${eligible.length} remaining selected entries` : `Picking ${Number.isInteger(count) && count > 0 ? count : '…'} from ${eligible.length} remaining ${mode === 'selected' ? 'selected entries' : 'entries'}`;
-  let problem = '';
-  if (!dataset.entries.length) problem = 'Open a data folder or try the example to get started.';
-  else if (mode === 'selected' && !selected.size) problem = 'Check at least one entry to include in your draw.';
-  else if (!eligible.length) problem = 'All entries in this pool have been drawn. Press Reset to make them available again.';
-  else if (!Number.isInteger(count) || count < 1) problem = 'Enter a whole number of results, starting at 1.';
-  else if (count > eligible.length) problem = `Only ${eligible.length} entries remain. Lower the result count, expand the pool, or press Reset.`;
-  $('validation').textContent = problem;
-  $('play').disabled = busy || !!problem;
-  $('reset-draw').disabled = busy || !drawn.size;
-  $('draw-progress').textContent = `${eligible.length} remaining in this pool · ${drawn.size} drawn overall`;
-  $('select-visible').disabled = busy || !visibleEntries().length;
-  $('clear-selection').disabled = busy || !selected.size;
+  let problem = dataset ? configurationProblem(dataset) : '';
+  if (dataset && !problem && !eligible.length) problem = 'All selected entries have been drawn. Reset to start a new round.';
+  else if (dataset && !problem && requestedCount() > eligible.length) problem = `Only ${eligible.length} entries remain. Lower the result count in Edit or reset the round.`;
+  notice('validation', problem);
+  $('play').disabled = busy || !dataset || !!problem;
+  $('new').disabled = busy;
+  $('collections').disabled = busy;
+  $('edit').hidden = !dataset;
+  $('edit').disabled = busy;
+  $('reset-draw').disabled = busy || (!dataset && !histories.size);
+  notice('draw-progress', dataset ? `${eligible.length} remaining · ${history().size} drawn` : '');
 }
-function visibleEntries() {
-  const query = $('search').value.trim().toLocaleLowerCase();
-  const category = $('category').value;
-  return dataset.entries.filter(entry => (!category || entry.category === category) && (!query || `${entry.text} ${entry.category}`.toLocaleLowerCase().includes(query)));
+function renderCollections() {
+  $('collections').replaceChildren(new Option('Select a folder…', ''));
+  const totals = new Map();
+  for (const item of collections.values()) totals.set(item.name, (totals.get(item.name) || 0) + 1);
+  const seen = new Map();
+  for (const item of collections.values()) {
+    seen.set(item.name, (seen.get(item.name) || 0) + 1);
+    const label = totals.get(item.name) > 1 ? `${item.name} (${seen.get(item.name)})` : item.name;
+    $('collections').add(new Option(label, item.id));
+  }
+  $('collections').value = dataset?.id || '';
+}
+function updateDraftControls() {
+  $('selection-count').textContent = `${draft.selectedIds.length} selected`;
+  $('count-label').hidden = draft.mode !== 'pick';
+  $('result-count').disabled = draft.mode !== 'pick';
+  $('result-count').max = draft.selectedIds.length;
+  $('select-all').disabled = !draft.entries.length;
+  $('clear-selection').disabled = !draft.selectedIds.length;
+  $('save-validation').textContent = configurationProblem(draft);
+  $('save').disabled = modalBusy || !!configurationProblem(draft);
 }
 function renderEntries() {
   observer?.disconnect();
   const container = $('entries');
   container.replaceChildren();
-  const visible = visibleEntries();
+  const query = $('search').value.trim().toLocaleLowerCase();
+  const visible = draft.entries.filter(entry => `${entry.text} ${entry.category}`.toLocaleLowerCase().includes(query));
   if (!visible.length) {
-    const empty = document.createElement('p');
-    empty.className = 'list-empty';
-    empty.textContent = dataset.entries.length ? 'No entries match these filters.' : 'Your next possibility starts here.\nOpen a folder, or explore the example collection.';
+    const empty = document.createElement('p'); empty.className = 'list-empty';
+    empty.textContent = draft.entries.length ? 'No entries match your search.' : 'Select a folder containing entries.json and its images.';
     container.append(empty);
   }
+  const source = draft;
   observer = 'IntersectionObserver' in window ? new IntersectionObserver(items => {
-    for (const item of items) if (item.isIntersecting) { showImage(item.target, item.target.entry); observer.unobserve(item.target); }
+    for (const item of items) if (item.isIntersecting) { showImage(item.target, item.target.entry, source); observer.unobserve(item.target); }
   }, { root: container, rootMargin: '100px' }) : null;
   for (const entry of visible) {
     const row = document.createElement('label'); row.className = 'entry-row';
-    const checkbox = document.createElement('input'); checkbox.type = 'checkbox'; checkbox.checked = selected.has(entry.id);
-    checkbox.addEventListener('change', () => { if (checkbox.checked) selected.add(entry.id); else selected.delete(entry.id); updateControls(); });
-    const img = document.createElement('img'); img.width = 38; img.height = 38; img.alt = ''; img.loading = 'lazy'; img.src = placeholder;
+    const checkbox = document.createElement('input'); checkbox.type = 'checkbox'; checkbox.checked = draft.selectedIds.includes(entry.id);
+    checkbox.addEventListener('change', () => {
+      const selected = new Set(draft.selectedIds);
+      if (checkbox.checked) selected.add(entry.id); else selected.delete(entry.id);
+      draft.selectedIds = [...selected]; updateDraftControls();
+    });
+    const img = document.createElement('img'); img.width = 74; img.height = 74; img.alt = ''; img.src = placeholder;
     const copy = document.createElement('span'); copy.className = 'entry-copy';
     const title = document.createElement('strong'); title.textContent = entry.text;
-    const subtitle = document.createElement('small'); subtitle.textContent = entry.category || 'Uncategorized';
+    const subtitle = document.createElement('small'); subtitle.textContent = entry.category;
     copy.append(title, subtitle); row.append(checkbox, img, copy); container.append(row);
     img.entry = entry;
-    if (observer) observer.observe(img); else showImage(img, entry);
+    if (observer) observer.observe(img); else showImage(img, entry, source);
   }
-  updateControls();
+  updateDraftControls();
 }
-function applyDataset(next) {
-  returnToControls();
-  observer?.disconnect();
-  for (const url of urls.values()) URL.revokeObjectURL(url);
-  urls = new Map(); broken = new Set(); dataset = next; selected = new Set();
-  drawn.clear();
-  $('search').value = ''; $('category').replaceChildren(new Option('All categories', ''));
-  for (const category of [...new Set(next.entries.map(entry => entry.category).filter(Boolean))].sort()) $('category').add(new Option(category, category));
-  $('dataset-name').textContent = next.name || 'Bring your own list';
-  $('dataset-detail').textContent = next.entries.length ? `${next.images.size} local image${next.images.size === 1 ? '' : 's'} · entries.json` : 'A folder with entries.json + images';
-  $('entry-count').textContent = `${next.entries.length} entries`;
-  $('forget').hidden = !next.entries.length;
-  $('results').replaceChildren(); $('results').hidden = true; $('empty-result').hidden = false;
-  $('announcement').textContent = ''; $('play-label').textContent = 'Play';
-  $('result-count').value = '1'; $('limit').checked = false;
-  renderEntries();
-}
-async function importDataset(loader) {
+function openConfiguration(item, opener) {
   if (busy) return;
-  setBusy(true); notice('error'); notice('storage-note');
+  modalOpener = opener;
+  draft = item ? { ...item, selectedIds: [...item.selectedIds] } : { id: crypto.randomUUID(), name: '', entries: [], images: new Map(), selectedIds: [], mode: 'shuffle', count: 1 };
+  $('modal-title').textContent = item ? 'Edit collection' : 'New collection';
+  $('dataset-name').textContent = draft.name || 'None selected';
+  $('open-folder').textContent = draft.name ? 'Change' : 'Select folder';
+  $('search').value = '';
+  $('result-count').value = draft.count;
+  for (const radio of document.querySelectorAll('input[name=mode]')) radio.checked = radio.value === draft.mode;
+  notice('modal-error');
+  renderEntries();
+  $('configuration').showModal();
+  $('open-folder').focus();
+}
+function closeConfiguration() { if (!modalBusy) $('configuration').close(); }
+function setModalBusy(value) {
+  modalBusy = value;
+  $('configuration-controls').disabled = value;
+  $('close-modal').disabled = value;
+  updateDraftControls();
+}
+async function importFolder(files) {
+  setModalBusy(true); notice('modal-error');
   try {
-    const next = await loader();
-    applyDataset(next);
-    try { await saveDataset(next); notice('storage-note', 'Saved in this browser for next time. Reopen the folder to load changes to its files.'); }
-    catch {
-      // Do not let an older collection unexpectedly return after a failed replacement.
-      try { await forgetDataset(); } catch { /* Storage may be completely unavailable. */ }
-      notice('storage-note', 'Loaded for this session, but browser storage could not save it. You may need to reopen the folder next time.');
-    }
-    $('announcement').textContent = `Loaded ${next.entries.length} entries from ${next.name}.`;
-  } catch (error) { notice('error', error.message); }
-  finally { setBusy(false); }
+    const next = await loadFolder(files);
+    draft = { ...draft, ...next, selectedIds: [] };
+    $('dataset-name').textContent = draft.name;
+    $('open-folder').textContent = 'Change';
+    $('search').value = '';
+    renderEntries(); releaseUnusedImages();
+  } catch (error) { notice('modal-error', error.message); }
+  finally { setModalBusy(false); }
 }
 function makeCard(index) {
   const card = document.createElement('article'); card.className = 'result-card';
@@ -150,6 +160,7 @@ function fillCard(slot, entry, settled = false) {
   slot.card.classList.toggle('settled', settled);
 }
 async function preload(entries) {
+  const source = dataset;
   const paths = new Set();
   await Promise.all(entries.filter(entry => {
     if (!entry.image || paths.has(entry.image) || paths.size >= 24) return false;
@@ -159,8 +170,8 @@ async function preload(entries) {
     const timeout = setTimeout(resolve, 500);
     const done = () => { clearTimeout(timeout); resolve(); };
     img.onload = done;
-    img.onerror = () => { broken.add(entry.image); done(); };
-    img.src = imageUrl(entry);
+    img.onerror = () => { broken.add(source.images.get(entry.image)); done(); };
+    img.src = imageUrl(entry, source);
   })));
 }
 async function play() {
@@ -176,10 +187,10 @@ async function play() {
     const slots = winners.map((_, index) => makeCard(index));
     results.replaceChildren(...slots.map(slot => slot.card));
     results.className = `results${winners.length === 1 ? ' single' : ''}`;
-    results.hidden = false; $('empty-result').hidden = true;
+    results.hidden = false;
     results.setAttribute('aria-busy', 'true'); results.setAttribute('aria-hidden', 'true');
     $('play-label').textContent = 'Shuffling…';
-    focusResults();
+    window.scrollTo(0, 0);
     if (!reduced) {
       results.classList.add('shuffling');
       slots.forEach((slot, i) => fillCard(slot, previews[i % previews.length]));
@@ -203,66 +214,72 @@ async function play() {
       });
     }
     slots.forEach((slot, i) => fillCard(slot, winners[i], true));
-    for (const entry of winners) drawn.add(entry.id);
-    $('play-label').textContent = 'Play again';
+    for (const entry of winners) history().add(entry.id);
+    $('play-label').textContent = 'Run again';
     $('announcement').textContent = `Draw complete. ${winners.map((entry, i) => `${i + 1}: ${entry.text}`).join('. ')}`;
     completed = true;
-  } catch (error) { notice('error', `Could not complete the draw: ${error.message}`); $('play-label').textContent = 'Play'; }
+  } catch (error) { notice('error', `Could not complete the draw: ${error.message}`); $('play-label').textContent = 'Run'; }
   finally {
     results.classList.remove('shuffling'); results.removeAttribute('aria-hidden'); results.setAttribute('aria-busy', 'false'); setBusy(false);
-    if (!completed) returnToControls();
-    else if (document.body.classList.contains('results-focus')) $('results').focus({ preventScroll: true });
+    if (completed) results.focus({ preventScroll: true });
+    else ($('play').disabled ? $('new') : $('play')).focus({ preventScroll: true });
   }
 }
-$('back-to-controls').addEventListener('click', returnToControls);
-$('reset-draw').addEventListener('click', () => {
-  if (busy) return;
-  drawn.clear();
-  updateControls();
-  $('announcement').textContent = 'Draw history reset. All entries are available again.';
-  $('play-label').textContent = 'Play';
-  if (!$('play').disabled) $('play').focus({ preventScroll: true });
+$('new').addEventListener('click', () => openConfiguration(null, $('new')));
+$('edit').addEventListener('click', () => openConfiguration(dataset, $('edit')));
+$('collections').addEventListener('change', () => {
+  const item = collections.get($('collections').value);
+  if (item) openConfiguration(item, $('collections'));
+  else { dataset = null; clearResults(); updateControls(); }
 });
-document.addEventListener('keydown', event => {
-  if (event.key === 'Escape' && document.body.classList.contains('results-focus')) {
-    event.preventDefault();
-    returnToControls();
-  }
+$('close-modal').addEventListener('click', closeConfiguration);
+$('cancel').addEventListener('click', closeConfiguration);
+$('configuration').addEventListener('cancel', event => { if (modalBusy) event.preventDefault(); });
+$('configuration').addEventListener('close', () => {
+  observer?.disconnect(); draft = null; $('entries').replaceChildren();
+  $('collections').value = dataset?.id || '';
+  releaseUnusedImages();
+  (modalOpener?.hidden ? $('new') : modalOpener)?.focus();
 });
 $('open-folder').addEventListener('click', () => $('folder-input').click());
 $('folder-input').addEventListener('change', event => {
   const files = [...event.target.files]; event.target.value = '';
-  if (files.length) importDataset(() => loadFolder(files));
-});
-$('demo').addEventListener('click', () => importDataset(async () => {
-  const response = await fetch('example-data/entries.json');
-  if (!response.ok) throw new Error('Could not load the example collection.');
-  return { name: 'The Sunday team', entries: parseEntries(await response.text()), images: new Map() };
-}));
-$('forget').addEventListener('click', async () => {
-  if (busy) return;
-  setBusy(true);
-  try { await forgetDataset(); applyDataset({ name: '', entries: [], images: new Map() }); notice('storage-note', 'The saved dataset has been removed from this browser.'); notice('error'); }
-  catch { notice('error', 'Could not remove the saved dataset. Try again or clear this site’s storage in your browser.'); }
-  finally { setBusy(false); }
+  if (files.length) importFolder(files);
 });
 $('search').addEventListener('input', renderEntries);
-$('category').addEventListener('change', renderEntries);
-$('select-visible').addEventListener('click', () => { for (const entry of visibleEntries()) selected.add(entry.id); renderEntries(); });
-$('clear-selection').addEventListener('click', () => { selected.clear(); renderEntries(); });
-for (const radio of document.querySelectorAll('input[name=mode]')) radio.addEventListener('change', () => { mode = radio.value; updateControls(); });
-$('limit').addEventListener('change', updateControls);
-$('result-count').addEventListener('input', updateControls);
+$('select-all').addEventListener('click', () => { $('search').value = ''; draft.selectedIds = draft.entries.map(entry => entry.id); renderEntries(); });
+$('clear-selection').addEventListener('click', () => { draft.selectedIds = []; renderEntries(); });
+for (const radio of document.querySelectorAll('input[name=mode]')) radio.addEventListener('change', () => { draft.mode = radio.value; updateDraftControls(); });
+$('result-count').addEventListener('input', () => { draft.count = Number($('result-count').value); updateDraftControls(); });
+$('save').addEventListener('click', async () => {
+  if (modalBusy || configurationProblem(draft)) return;
+  setModalBusy(true); notice('storage-note'); notice('error');
+  const next = { ...draft, selectedIds: [...draft.selectedIds] };
+  try { await saveCollection(next); }
+  catch { notice('storage-note', 'Saved for this session only. Browser storage is unavailable or full; these changes will not survive a reload.'); }
+  collections.set(next.id, next); dataset = next;
+  clearResults(); renderCollections(); updateControls();
+  setModalBusy(false); closeConfiguration();
+  $('announcement').textContent = `Saved ${next.name}. Ready to run.`;
+});
+$('reset-draw').addEventListener('click', () => {
+  if (busy) return;
+  histories.clear(); clearResults(); updateControls();
+  notice('error');
+  $('announcement').textContent = 'Draw history reset. Ready to start a new round.';
+  ($('play').disabled ? $('collections') : $('play')).focus();
+});
 $('play').addEventListener('click', play);
 
-setBusy(true); renderEntries();
+setBusy(true);
 try {
-  const saved = await restoreDataset();
-  if (saved) {
-    saved.entries = parseEntries(JSON.stringify(saved.entries));
-    if (!(saved.images instanceof Map)) throw new Error('Invalid saved images.');
-    applyDataset(saved);
-    notice('storage-note', 'Restored your last collection. Reopen its folder to load file changes.');
+  const saved = await restoreCollections();
+  let invalid = 0;
+  for (const value of saved) {
+    try { const item = restoreCollection(value); collections.set(item.id, item); }
+    catch { invalid++; }
   }
-} catch { notice('storage-note', 'Saved data could not be restored. Open a folder to continue; the app also works without saved data.'); }
+  renderCollections();
+  if (invalid) notice('storage-note', 'Some saved collections could not be restored. Import their folders again.');
+} catch (error) { notice('storage-note', `Saved collections could not be restored. You can still use New to load a folder. ${error.message}`); }
 finally { setBusy(false); }
