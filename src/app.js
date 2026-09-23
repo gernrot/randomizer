@@ -87,7 +87,7 @@ function renderEntries() {
   const container = $('entries');
   container.replaceChildren();
   const query = $('search').value.trim().toLocaleLowerCase();
-  const visible = draft.entries.filter(entry => `${entry.text} ${entry.category}`.toLocaleLowerCase().includes(query));
+  const visible = draft.entries.filter(entry => `${entry.text} ${entry.category} ${entry.sub || ''}`.toLocaleLowerCase().includes(query));
   if (!visible.length) {
     const empty = document.createElement('p'); empty.className = 'list-empty';
     empty.textContent = draft.entries.length ? 'No entries match your search.' : 'Select a folder containing a .csv or .json file and any images.';
@@ -110,7 +110,8 @@ function renderEntries() {
     const copy = document.createElement('span'); copy.className = 'entry-copy';
     const title = document.createElement('strong'); title.textContent = entry.text;
     const subtitle = document.createElement('small'); subtitle.textContent = entry.category; subtitle.hidden = !entry.category;
-    copy.append(title, subtitle); row.append(checkbox, img, copy); container.append(row);
+    const sub = document.createElement('small'); sub.textContent = entry.sub || ''; sub.hidden = !entry.sub;
+    copy.append(title, subtitle, sub); row.append(checkbox, img, copy); container.append(row);
     img.entry = entry;
     if (entry.image) {
       if (observer) observer.observe(img); else showImage(img, entry, source);
@@ -158,12 +159,13 @@ function makeCard(index) {
   const card = document.createElement('article'); card.className = 'result-card';
   const badge = document.createElement('span'); badge.className = 'result-number'; badge.textContent = String(index + 1).padStart(2, '0');
   const img = document.createElement('img'); img.alt = ''; img.width = 110; img.height = 110;
-  const title = document.createElement('h3'); const category = document.createElement('p');
-  card.append(badge, img, title, category);
-  return { card, img, title, category };
+  const title = document.createElement('h3'); const category = document.createElement('p'); const sub = document.createElement('p');
+  card.append(badge, img, title, category, sub);
+  return { card, img, title, category, sub };
 }
 function fillCard(slot, entry, settled = false) {
   showImage(slot.img, entry); slot.title.textContent = entry.text; slot.category.textContent = entry.category;
+  slot.sub.textContent = entry.sub || '';
   slot.card.classList.toggle('settled', settled);
 }
 async function preload(entries) {

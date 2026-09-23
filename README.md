@@ -16,15 +16,17 @@ Click **New**, then **Select folder** and choose your data folder. The included 
 
 ## Dataset format
 
-Place a `.csv` file with any filename (for example `participants.csv`) directly in the selected folder, with just two columns:
+Place a `.csv` file with any filename (for example `participants.csv`) directly in the selected folder, with `text` and `image` columns and an optional `sub` column:
 
 ```csv
-text,image
-Alex Morgan,images/alex.jpg
-What would you try if you could not fail?,
+text,image,sub
+Alex Morgan,images/alex.jpg,Additional text
+What would you try if you could not fail?,,
 ```
 
 Text is required; leave the image field empty for a text-only entry with no image or placeholder. No ID or category column is needed. IDs are generated automatically, and duplicate rows represent separate entries. Save as **CSV UTF-8** in Excel. Comma and semicolon separators, quoted fields, escaped quotes, and line breaks inside quoted fields are supported. Blank rows are ignored. Quote fields containing the separator or line breaks, and double quotes inside quoted fields (for example `"Say ""hello"", Alex"`).
+
+The optional `sub` field displays additional text using the category styling. Empty values are hidden. Existing two-column CSV files still work.
 
 Put images in the selected folder or a subfolder:
 
@@ -39,12 +41,12 @@ JSON files with any filename are also supported. Keep exactly one `.csv` or `.js
 
 ```json
 [
-  { "id": "alex", "text": "Alex Morgan", "category": "Design", "image": "images/alex.jpg" },
+  { "id": "alex", "text": "Alex Morgan", "category": "Design", "sub": "Additional text", "image": "images/alex.jpg" },
   { "id": "prompt-1", "text": "What would you try if you could not fail?", "category": "Prompts" }
 ]
 ```
 
-For JSON, an object with an `entries` array is also accepted. IDs must be unique non-empty strings. Text is required; category and image are optional. Duplicate text with distinct IDs represents distinct entries. In either format, paths are case-sensitive, relative to the selected folder, and cannot contain traversal, absolute paths, URL schemes, query strings, or encoded segments. An empty image path displays no image; a non-empty path pointing to a missing or unreadable image shows a placeholder. Content is rendered as plain text.
+For JSON, an object with an `entries` array is also accepted. IDs must be unique non-empty strings. Text is required; category, image, and sub are optional. Duplicate text with distinct IDs represents distinct entries. In either format, paths are case-sensitive, relative to the selected folder, and cannot contain traversal, absolute paths, URL schemes, query strings, or encoded segments. An empty image path displays no image; a non-empty path pointing to a missing or unreadable image shows a placeholder. Content is rendered as plain text.
 
 ## Collections and drawing
 

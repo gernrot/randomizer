@@ -20,9 +20,10 @@ export function parseEntries(source) {
     ids.add(id);
     if (typeof entry.text !== 'string' || !entry.text.trim()) throw new Error(`${label} needs non-empty text.`);
     if (entry.category != null && typeof entry.category !== 'string') throw new Error(`${label}: category must be text.`);
+    if (entry.sub != null && typeof entry.sub !== 'string') throw new Error(`${label}: sub must be text.`);
     if (entry.image != null && typeof entry.image !== 'string') throw new Error(`${label}: image must be a relative path string.`);
     if (entry.image?.trim() && !safeImagePath(entry.image)) throw new Error(`${label}: image must be a relative path inside the selected folder (for example images/alex.jpg).`);
-    return { id, text: entry.text.trim(), category: entry.category?.trim() || '', image: safeImagePath(entry.image) };
+    return { id, text: entry.text.trim(), category: entry.category?.trim() || '', sub: entry.sub?.trim() || '', image: safeImagePath(entry.image) };
   });
 }
 
@@ -65,22 +66,24 @@ export function parseCsvEntries(source) {
   if (quoted) fail('Unclosed quoted field.');
   endRow();
   const headers = rows.shift()?.cells.map(cell => cell.trim().toLowerCase());
-  if (!headers || headers.length !== 2 || !headers.includes('text') || !headers.includes('image')) {
-    throw new Error('The CSV file must start with the two column headers text,image (or text;image).');
+  if (!headers || !headers.includes('text') || !headers.includes('image') || new Set(headers).size !== headers.length || headers.some(header => !['text', 'image', 'sub'].includes(header))) {
+    throw new Error('The CSV file must have text and image column headers, with an optional sub column (comma or semicolon separated).');
   }
   if (!rows.length) throw new Error('The CSV file must contain at least one entry.');
   const occurrences = new Map();
   return rows.map(row => {
     rowLine = row.line;
-    if (row.cells.length !== 2) fail('Expected two fields: text and image.');
+    if (row.cells.length !== headers.length) fail(`Expected ${headers.length} fields matching the column headers.`);
     const text = row.cells[headers.indexOf('text')].trim();
     const image = row.cells[headers.indexOf('image')].trim();
+    const sub = headers.includes('sub') ? row.cells[headers.indexOf('sub')].trim() : '';
     if (!text) fail('Text must not be empty.');
     if (image && !safeImagePath(image)) fail('Image must be a relative path inside the selected folder (for example images/alex.jpg).');
-    const key = JSON.stringify([text, image]);
+    const identity = sub ? [text, image, sub] : [text, image];
+    const key = JSON.stringify(identity);
     const occurrence = (occurrences.get(key) || 0) + 1;
     occurrences.set(key, occurrence);
-    return { id: `csv:${JSON.stringify([text, image, occurrence])}`, text, image: image || null, category: '' };
+    return { id: `csv:${JSON.stringify([...identity, occurrence])}`, text, image: image || null, category: '', sub };
   });
 }
 

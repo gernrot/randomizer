@@ -104,6 +104,7 @@ input[type=checkbox], input[type=radio] { accent-color: var(--accent); width: 18
 .result-card h3 { font-size: clamp(20px, 2.7vw, 28px); font-weight: 550; letter-spacing: -.5px; line-height: 1.4; overflow-wrap: anywhere; white-space: pre-wrap; margin: 20px 0 10px; }
 .result-card p { display: inline-block; font-size: 12px; font-weight: 550; color: var(--accent); background: var(--accent-soft); border-radius: 20px; padding: 5px 12px; max-width: 100%; overflow-wrap: anywhere; margin: 0; }
 .result-card p:empty { display: none; }
+.result-card p:not(:empty) + p { margin-left: 8px; }
 .result-number { position: absolute; top: 16px; left: 18px; font-size: 12px; font-weight: 650; color: #875530; background: #f5eadb; padding: 5px 8px; border-radius: 7px; font-variant-numeric: tabular-nums; }
 .shuffling .result-card:not(.settled) img, .shuffling .result-card:not(.settled) h3, .shuffling .result-card:not(.settled) p { filter: blur(9px); user-select: none; }
 .results { min-height: 65dvh; align-items: center; }

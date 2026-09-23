@@ -29,6 +29,23 @@ test('CSV generates unique repeatable IDs, preserving identity when rows move', 
   assert.equal(restored.selectedIds.length, 3);
 });
 
+test('CSV imports optional sub text and preserves it when restoring a collection', () => {
+  const entries = parseCsvEntries('sub;text;image\n" Extra; details ";Alex;\n   ;Bob;');
+  assert.equal(entries[0].sub, 'Extra; details');
+  assert.equal(entries[1].sub, '');
+  const restored = restoreCollection({ id: 'sub-test', entries, images: new Map() });
+  assert.deepEqual(restored.entries, entries);
+  const [legacy] = parseCsvEntries('text,image\nBob,');
+  assert.equal(legacy.sub, '');
+  assert.equal(entries[1].id, legacy.id);
+  const reordered = parseCsvEntries('text,image,sub\nAlex,,Second\nAlex,,First');
+  const original = parseCsvEntries('text,image,sub\nAlex,,First\nAlex,,Second');
+  assert.deepEqual(original.map(entry => entry.id).sort(), reordered.map(entry => entry.id).sort());
+  assert.notEqual(original[0].id, original[1].id);
+  assert.throws(() => parseCsvEntries('text,image,sub,sub\nAlex,,,extra'), /column/);
+  assert.throws(() => parseCsvEntries('text,image,sub\nAlex,'), /row 2/);
+});
+
 test('CSV rejects invalid headers, malformed quotes, missing text and unsafe paths', () => {
   for (const source of ['', 'text,image', 'text,category\nA,B', 'text,image,extra\nA,,',
     'text,image\nA', 'text,image\nA,,', 'text,image\n,image.jpg',

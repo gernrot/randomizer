@@ -13,6 +13,17 @@ test('accepts list and wrapped datasets, trims values, preserves duplicate text'
 test('rejects invalid JSON, empty data, duplicate IDs, invalid fields and unsafe images', () => {
   for (const source of ['{', '{}', '[]', '[null]', '[{"id":"a"}]', '[{"id":1,"text":"a"}]', '[{"id":"a","text":"a","category":3}]', '[{"id":"a","text":"a","image":3}]', '[{"id":"a","text":"a"},{"id":" a ","text":"b"}]', '[{"id":"a","text":"a","image":"../secret.png"}]']) assert.throws(() => parseEntries(source));
 });
+test('JSON supports optional sub text while retaining category and rejects non-text values', () => {
+  const [entry] = parseEntries(JSON.stringify([{ id: 'a', text: 'Alex', category: 'Team', sub: ' Extra details ' }]));
+  assert.equal(entry.sub, 'Extra details');
+  assert.equal(entry.category, 'Team');
+  for (const sub of [undefined, null, '', '   ']) {
+    assert.equal(parseEntries(JSON.stringify([{ id: 'a', text: 'Alex', sub }]))[0].sub, '');
+  }
+  for (const sub of [12, false, [], {}]) {
+    assert.throws(() => parseEntries(JSON.stringify([{ id: 'a', text: 'Alex', sub }])), /sub must be text/);
+  }
+});
 test('rejects absolute paths, traversal, URLs and encoded path tricks', () => {
   for (const path of ['/a.png', '../a.png', 'images/../a.png', 'C:\\a.png', 'https://x/a.png', '//x/a', 'images/%2e%2e/a', './a.png', 'images//a.png', 'a.png?x=1']) assert.equal(safeImagePath(path), null);
   assert.equal(safeImagePath('images/A photo.jpg'), 'images/A photo.jpg');
