@@ -93,8 +93,9 @@ input[type=checkbox], input[type=radio] { accent-color: var(--accent); width: 18
 .count-label { display: flex; align-items: center; gap: 16px; margin-top: 18px; font-size: 14px; font-weight: 550; }
 #result-count { width: 82px; background: #fff; }
 #save-validation:empty { display: none; }
-.modal-actions { display: flex; gap: 10px; margin-top: 22px; padding-top: 20px; border-top: 1px solid var(--line); }
+.modal-actions { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 22px; padding-top: 20px; border-top: 1px solid var(--line); }
 .modal-actions .primary { min-width: 108px; }
+#delete-collection { margin-left: auto; color: #85472f; text-decoration-color: #d5b6a6; }
 .results { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 240px), 1fr)); gap: 20px; margin-top: 28px; }
 .results.single { grid-template-columns: minmax(0, 560px); justify-content: center; }
 .result-card { min-width: 0; text-align: center; position: relative; padding: 24px 14px 18px; border: 1px solid var(--line); border-radius: 20px; background: var(--surface); box-shadow: 0 6px 24px #243b3a06; }

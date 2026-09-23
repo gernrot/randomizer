@@ -35,4 +35,5 @@ async function operation(mode, action) {
   } finally { db.close(); }
 }
 export function saveCollection(collection) { return operation('readwrite', store => store.put(collection)); }
+export function deleteCollection(id) { return operation('readwrite', store => store.delete(id)); }
 export function restoreCollections() { return operation('readonly', store => store.getAll()); }

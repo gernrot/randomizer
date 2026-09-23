@@ -1,6 +1,6 @@
 import { loadFolder } from './data.js';
 import { draw, randomInt } from './random.js';
-import { saveCollection, restoreCollections } from './storage.js';
+import { saveCollection, deleteCollection, restoreCollections } from './storage.js';
 import { restoreCollection, collectionPool, configurationProblem } from './collections.js';
 
 const $ = id => document.getElementById(id);
@@ -123,6 +123,8 @@ function openConfiguration(item, opener) {
   modalOpener = opener;
   draft = item ? { ...item, selectedIds: [...item.selectedIds] } : { id: crypto.randomUUID(), name: '', entries: [], images: new Map(), selectedIds: [], mode: 'shuffle', count: 1 };
   $('modal-title').textContent = item ? 'Edit collection' : 'New collection';
+  $('delete-collection').hidden = !item;
+  $('delete-note').hidden = !item;
   $('dataset-name').textContent = draft.name || 'None selected';
   $('open-folder').textContent = draft.name ? 'Change' : 'Select folder';
   $('search').value = '';
@@ -266,6 +268,25 @@ $('save').addEventListener('click', async () => {
   clearResults(); renderCollections(); updateControls();
   setModalBusy(false); closeConfiguration();
   $('announcement').textContent = `Saved ${next.name}. Ready to run.`;
+});
+$('delete-collection').addEventListener('click', async () => {
+  if (modalBusy || !draft || !collections.has(draft.id)) return;
+  const item = collections.get(draft.id);
+  if (!window.confirm(`Delete collection "${item.name}" from Randomizer?\n\nThe original folder and files will not be deleted from your hard drive.`)) return;
+  setModalBusy(true); notice('modal-error');
+  try {
+    await deleteCollection(item.id);
+  } catch (error) {
+    notice('modal-error', `Could not delete the collection. Please try again. ${error.message}`);
+    setModalBusy(false);
+    return;
+  }
+  collections.delete(item.id); histories.delete(item.id);
+  if (dataset?.id === item.id) { dataset = null; clearResults(); }
+  renderCollections(); updateControls();
+  modalOpener = $('collections');
+  setModalBusy(false); closeConfiguration();
+  $('announcement').textContent = `Deleted ${item.name} from Randomizer. The original folder and files are unchanged.`;
 });
 $('reset-draw').addEventListener('click', () => {
   if (busy) return;
