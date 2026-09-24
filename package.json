@@ -1,6 +1,7 @@
 {
   "name": "local-randomizer",
   "private": true,
+  "license": "MIT",
   "type": "module",
   "scripts": { "start": "node server.mjs", "test": "node --test", "build:macos": "node scripts/build-macos.mjs", "install:macos": "npm run build:macos && node scripts/install-macos.mjs" }
 }
