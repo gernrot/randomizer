@@ -14,6 +14,14 @@ Open **http://localhost:5173**. Keep the command running while using the app; st
 
 Click **New**, then **Select folder** and choose your data folder. The included `example-data` folder is a valid dataset. Select entries, choose a mode, and **Save**. Then press **Run**.
 
+### macOS Dock launcher
+
+Run `npm run install:macos` to build `Randomizer.app`, install it into your personal Applications folder (`~/Applications`), and pin it to the Dock. The Dock briefly restarts to show the new icon. Click it to start the local server in the background and open `http://localhost:5173` in your default browser. No Terminal window is needed. An already-running Randomizer server is reused. To only build the app, use `npm run build:macos` (output: `build/Randomizer.app`).
+
+Use the same browser as before to access your saved collections. Closing the browser leaves the server running until logout or restart; it can also be stopped using Activity Monitor (the Node process running `server.mjs`). Server output is stored in `.runtime/server.log` in this project.
+
+The launcher uses this project's absolute path and the Node executable used to build it. Keep the project in place and Node installed. If you move the project or remove that Node version, rebuild and replace the app. This is a local launcher, not a standalone distributable application.
+
 ## Dataset format
 
 Place a `.csv` file with any filename (for example `participants.csv`) directly in the selected folder, with `text` and `image` columns and an optional `sub` column:
