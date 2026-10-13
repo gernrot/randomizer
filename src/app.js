@@ -61,7 +61,9 @@ function updateControls() {
   notice('draw-progress', dataset ? `${eligible.length} remaining · ${history().size} drawn` : '');
 }
 function renderCollections() {
-  $('collections').replaceChildren(new Option('Select a folder…', ''));
+  const prompt = new Option('Select a collection…', '');
+  prompt.disabled = true;
+  $('collections').replaceChildren(prompt);
   const totals = new Map();
   for (const item of collections.values()) totals.set(item.name, (totals.get(item.name) || 0) + 1);
   const seen = new Map();
@@ -238,8 +240,8 @@ $('new').addEventListener('click', () => openConfiguration(null, $('new')));
 $('edit').addEventListener('click', () => openConfiguration(dataset, $('edit')));
 $('collections').addEventListener('change', () => {
   const item = collections.get($('collections').value);
-  if (item) openConfiguration(item, $('collections'));
-  else { dataset = null; clearResults(); updateControls(); }
+  if (!item || busy) { $('collections').value = dataset?.id || ''; return; }
+  openConfiguration(item, $('collections'));
 });
 $('close-modal').addEventListener('click', closeConfiguration);
 $('cancel').addEventListener('click', closeConfiguration);

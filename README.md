@@ -58,7 +58,7 @@ For JSON, an object with an `entries` array is also accepted. IDs must be unique
 
 ## Collections and drawing
 
-- The start page contains **New**, a saved-folder dropdown, **Run**, and **Reset**. Selecting a saved collection opens its settings; **Edit** reopens the active collection.
+- The start page contains **New**, a saved-collection dropdown, **Run**, and **Reset**. Selecting a saved collection opens its settings; **Save** activates it, while **Cancel** keeps the previously active collection. **Edit** reopens the active collection's settings. The initial **Select a collection…** prompt is disabled, so it cannot deselect the active collection.
 - The modal edits a draft. **Save** stores the folder snapshot, selected entries, mode, and result count, closes the modal, and activates the collection. **Cancel**, the close button, or **Escape** discards edits. Changing a folder clears the draft selection; it does not change the saved collection until Save.
 - In **Edit collection**, **Delete collection** asks for confirmation, then removes that collection from the dropdown and browser storage, including its draw history. The original folder and files on your hard drive are not deleted. Other saved collections remain unchanged.
 - **Shuffle** displays every remaining selected entry in random order. **Pick** draws the specified number from the remaining selected entries. Results count is available only in Pick. Both modes require at least one selected entry.
