@@ -17,4 +17,4 @@ const server = http.createServer(async (req, res) => {
   } catch { res.writeHead(404); res.end('Not found'); }
 });
 server.on('error', error => { console.error(error.message); process.exitCode = 1; });
-server.listen(Number(process.env.PORT || 5173), '127.0.0.1', () => console.log(`Randomizer: http://localhost:${server.address().port}`));
+server.listen(Number(process.env.PORT || 5174), '127.0.0.1', () => console.log(`Randomizer: http://localhost:${server.address().port}`));

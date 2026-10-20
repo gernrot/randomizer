@@ -10,13 +10,13 @@ Install Node.js 22 or newer, then run:
 npm start
 ```
 
-Open **http://localhost:5173**. Keep the command running while using the app; stop it with Ctrl+C. Use the same URL and port each time so the browser can restore your saved collections. Set `PORT` to use another port. The server only listens on this computer and only serves app assets.
+Open **http://localhost:5174**. Keep the command running while using the app; stop it with Ctrl+C. Use the same URL and port each time so the browser can restore your saved collections. Set `PORT` to use another port. The server only listens on this computer and only serves app assets.
 
 Click **New**, then **Select folder** and choose your data folder. The included `example-data` folder is a valid dataset. Select entries, choose a mode, and **Save**. Then press **Run**.
 
 ### macOS Dock launcher
 
-Run `npm run install:macos` to build `Randomizer.app`, install it into your personal Applications folder (`~/Applications`), and pin it to the Dock. The Dock briefly restarts to show the new icon. Click it to start the local server in the background and open `http://localhost:5173` in your default browser. No Terminal window is needed. An already-running Randomizer server is reused. To only build the app, use `npm run build:macos` (output: `build/Randomizer.app`).
+Run `npm run install:macos` to build `Randomizer.app`, install it into your personal Applications folder (`~/Applications`), and pin it to the Dock. The Dock briefly restarts to show the new icon. Click it to start the local server in the background and open `http://localhost:5174` in your default browser. No Terminal window is needed. An already-running Randomizer server is reused. To only build the app, use `npm run build:macos` (output: `build/Randomizer.app`).
 
 Use the same browser as before to access your saved collections. Closing the browser leaves the server running until logout or restart; it can also be stopped using Activity Monitor (the Node process running `server.mjs`). Server output is stored in `.runtime/server.log` in this project.
 

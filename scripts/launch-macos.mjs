@@ -4,7 +4,7 @@ import { fileURLToPath } from 'node:url';
 import path from 'node:path';
 
 const root = fileURLToPath(new URL('../', import.meta.url));
-const url = 'http://127.0.0.1:5173';
+const url = 'http://127.0.0.1:5174';
 const expected = readFileSync(path.join(root, 'index.html'), 'utf8');
 
 async function running() {
@@ -15,7 +15,7 @@ async function running() {
     return false;
   }
   if (!response.ok || await response.text() !== expected) {
-    throw new Error('Port 5173 is being used by another app or an older Randomizer server. Stop that server and try again.');
+    throw new Error('Port 5174 is being used by another app or an older Randomizer server. Stop that server and try again.');
   }
   return true;
 }
@@ -29,7 +29,7 @@ try {
       cwd: root,
       detached: true,
       stdio: ['ignore', log, log],
-      env: { ...process.env, PORT: '5173' },
+      env: { ...process.env, PORT: '5174' },
     });
     closeSync(log);
     let spawnError;
@@ -43,8 +43,8 @@ try {
     }
     if (!ready) throw new Error(`Randomizer could not start. See ${path.join(runtime, 'server.log')} for details.`);
   }
-  // Keep the original browser origin so existing IndexedDB collections remain available.
-  execFileSync('/usr/bin/open', ['http://localhost:5173']);
+  // Use localhost consistently for browser storage.
+  execFileSync('/usr/bin/open', ['http://localhost:5174']);
 } catch (error) {
   console.error(error.message);
   process.exitCode = 1;
